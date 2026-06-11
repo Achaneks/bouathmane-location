@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 60" width="320" height="60">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&amp;display=swap');
+    </style>
+  </defs>
+  <!-- BL mark -->
+  <rect x="0" y="8" width="4" height="42" fill="#C9A84C" rx="1"/>
+  <path d="M4,8 L18,8 C27,8 33,14 33,22 C33,30 27,36 18,36 L4,36 Z" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M4,36 L20,36 C30,36 36,42 36,51 C36,58 30,50 20,50 L4,50 Z" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="40" y="30" width="4" height="20" fill="#C9A84C" rx="1" opacity="0.7"/>
+  <rect x="40" y="46" width="20" height="4" fill="#C9A84C" rx="1" opacity="0.7"/>
+  <polygon points="37,40 40,37 43,40 40,43" fill="#C9A84C" opacity="0.4"/>
+  <!-- Divider -->
+  <line x1="72" y1="10" x2="72" y2="50" stroke="#C9A84C" stroke-width="0.6" opacity="0.25"/>
+  <!-- Wordmark -->
+  <text x="84" y="32" font-family="'Cormorant Garamond', Georgia, serif" font-size="18" font-weight="300" fill="#F2F0EB" letter-spacing="2">BOUATHMANE</text>
+  <text x="85" y="50" font-family="'Cormorant Garamond', Georgia, serif" font-size="12" font-style="italic" fill="#C9A84C" letter-spacing="4">Location</text>
+</svg>
