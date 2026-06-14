@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Car, ExternalLink, LayoutDashboard, PlusCircle } from "lucide-react";
+import { Car, ExternalLink, LayoutDashboard, PlusCircle, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -90,6 +90,22 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === "/admin/settings"}
+              tooltip="Settings"
+              className={cn(
+                "border-l-[3px] border-transparent",
+                pathname === "/admin/settings" && "border-l-gold bg-gold-dim text-gold",
+              )}
+              render={
+                <Link href="/admin/settings">
+                  <Settings />
+                  <span>Settings</span>
+                </Link>
+              }
+            />
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="View public site"

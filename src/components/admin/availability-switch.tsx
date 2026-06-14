@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Switch } from "@/components/ui/switch";
 import { toggleAvailabilityAction } from "@/app/admin/cars/actions";
 
@@ -11,13 +11,19 @@ export function AvailabilitySwitch({
   carId: string;
   defaultChecked: boolean;
 }) {
+  const [checked, setChecked] = useState(defaultChecked);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setChecked(defaultChecked);
+  }, [defaultChecked]);
 
   return (
     <Switch
-      defaultChecked={defaultChecked}
+      checked={checked}
       disabled={isPending}
-      onCheckedChange={() => {
+      onCheckedChange={(value) => {
+        setChecked(value);
         startTransition(async () => {
           await toggleAvailabilityAction(carId);
         });

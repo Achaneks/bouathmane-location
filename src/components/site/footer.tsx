@@ -1,57 +1,121 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
-import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { FacebookIcon, InstagramIcon } from "@/components/icons/social-icons";
-import { SITE_NAME, WHATSAPP_NUMBER } from "@/lib/constants";
+import { Mail, Phone } from "lucide-react";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  LinkedinIcon,
+  TiktokIcon,
+  TwitterIcon,
+  YoutubeIcon,
+} from "@/components/icons/social-icons";
+import { Logo } from "@/components/site/logo";
+import { useSettings } from "@/hooks/use-settings";
+import { SITE_NAME } from "@/lib/constants";
+import type { SiteSettings } from "@/lib/settings";
+
+type SocialKey = keyof SiteSettings["socials"];
+
+const SOCIAL_KEYS: SocialKey[] = [
+  "instagram",
+  "tiktok",
+  "facebook",
+  "youtube",
+  "twitter",
+  "linkedin",
+];
+
+const SOCIAL_ICON_RULES: {
+  test: (url: string) => boolean;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { test: (url) => url.includes("instagram.com"), icon: InstagramIcon },
+  { test: (url) => url.includes("youtube.com"), icon: YoutubeIcon },
+  { test: (url) => url.includes("twitter.com") || url.includes("x.com"), icon: TwitterIcon },
+  { test: (url) => url.includes("facebook.com"), icon: FacebookIcon },
+  { test: (url) => url.includes("linkedin.com"), icon: LinkedinIcon },
+  { test: (url) => url.includes("tiktok.com"), icon: TiktokIcon },
+];
+
+function getSocialIcon(url: string) {
+  return SOCIAL_ICON_RULES.find(({ test }) => test(url))?.icon ?? null;
+}
 
 export function Footer() {
+  const settings = useSettings();
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-background">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 px-4 py-10 text-center sm:grid-cols-3 sm:px-6 sm:text-left lg:px-8">
-        <Link
-          href="#hero"
-          className="flex justify-self-center sm:justify-self-start"
-          aria-label={SITE_NAME}
-        >
-          <Image
-            src="/bouathmane-navbar-dark.svg"
-            alt={SITE_NAME}
-            width={213}
-            height={40}
-            className="h-8 w-auto"
-          />
-        </Link>
+    <footer className="border-t border-border bg-surface">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-12 text-center sm:grid-cols-3 sm:text-left">
+          <div className="flex flex-col items-center gap-4 sm:items-start">
+            <Link href="#hero" aria-label={SITE_NAME}>
+              <Logo />
+            </Link>
+            <p className="font-heading text-lg italic text-gold">{settings.tagline}</p>
+            <p className="line-clamp-2 max-w-xs text-sm text-text-secondary">
+              {settings.description}
+            </p>
+          </div>
 
-        <p className="text-xs text-text-muted">
-          &copy; {year} {SITE_NAME}. All rights reserved.
-        </p>
+          <div className="flex flex-col items-center gap-4 sm:items-start">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-gold">
+              Contact Us
+            </h3>
+            <div className="flex flex-col gap-3">
+              <a
+                href={`tel:${settings.phone}`}
+                className="flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-gold"
+              >
+                <Phone className="size-4 text-gold" />
+                {settings.phone}
+              </a>
+              <a
+                href={`mailto:${settings.email}`}
+                className="flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-gold"
+              >
+                <Mail className="size-4 text-gold" />
+                {settings.email}
+              </a>
+            </div>
+          </div>
 
-        <div className="flex items-center justify-center gap-3 sm:justify-self-end">
-          <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="WhatsApp"
-            className="flex size-9 items-center justify-center rounded-full border border-border text-text-secondary transition-colors hover:border-gold/30 hover:text-gold"
-          >
-            <WhatsAppIcon className="size-4" />
-          </a>
-          <a
-            href="#"
-            aria-label="Instagram"
-            className="flex size-9 items-center justify-center rounded-full border border-border text-text-secondary transition-colors hover:border-gold/30 hover:text-gold"
-          >
-            <InstagramIcon className="size-4" />
-          </a>
-          <a
-            href="#"
-            aria-label="Facebook"
-            className="flex size-9 items-center justify-center rounded-full border border-border text-text-secondary transition-colors hover:border-gold/30 hover:text-gold"
-          >
-            <FacebookIcon className="size-4" />
-          </a>
+          <div className="flex flex-col items-center gap-4 sm:items-start">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-gold">
+              Follow Us
+            </h3>
+            <div className="flex items-center gap-3">
+              {SOCIAL_KEYS.map((key) => {
+                const url = settings.socials[key];
+                if (!url) return null;
+
+                const Icon = getSocialIcon(url);
+                if (!Icon) return null;
+
+                return (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={key}
+                    className="flex size-9 items-center justify-center rounded-full border border-border text-text-secondary transition-colors hover:border-gold/30 hover:text-gold"
+                  >
+                    <Icon className="size-4" />
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-text-muted sm:flex-row">
+          <p>
+            &copy; {year} {SITE_NAME} — Morocco
+          </p>
+          <p>Made with ❤️ in Morocco</p>
         </div>
       </div>
     </footer>
