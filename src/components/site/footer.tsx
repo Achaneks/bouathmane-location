@@ -9,8 +9,8 @@ import {
   YoutubeIcon,
 } from "@/components/icons/social-icons";
 import { Logo } from "@/components/site/logo";
-import { db } from "@/lib/db";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/constants";
+import { getSettings } from "@/lib/settings";
 import { normalizeSocialUrls, SOCIAL_KEYS, type SocialKey } from "@/lib/social-links";
 
 const SOCIAL_ICON_RULES: {
@@ -30,7 +30,7 @@ function getSocialIcon(url: string) {
 }
 
 export async function Footer() {
-  const settings = await db.settings.findUnique({ where: { id: "singleton" } });
+  const settings = await getSettings();
   const socialUrls = normalizeSocialUrls(settings?.socialUrls);
   const phone = settings?.phone ?? "";
   const email = settings?.email ?? "";

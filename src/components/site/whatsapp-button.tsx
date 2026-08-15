@@ -1,12 +1,13 @@
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { cn } from "@/lib/utils";
-import { getWhatsAppLink } from "@/lib/utils";
+import { cn, getWhatsAppLink } from "@/lib/utils";
 
 export function WhatsAppButton({
   car,
+  phone,
   className,
 }: {
   car: { name: string; available: boolean };
+  phone: string;
   className?: string;
 }) {
   if (!car.available) {
@@ -24,9 +25,11 @@ export function WhatsAppButton({
     );
   }
 
+  const message = `Hello, I'm interested in renting the ${car.name}. Is it available?`;
+
   return (
     <a
-      href={getWhatsAppLink(car)}
+      href={getWhatsAppLink(phone, message)}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(

@@ -2,11 +2,17 @@
 
 FROM node:20-alpine AS base
 
-# ---- Dependencies ----
+# ---- Dependencies (full, for build tooling) ----
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
+
+# ---- Dependencies (production only, for the runner's Prisma CLI) ----
+FROM base AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 # ---- Build ----
 FROM base AS builder
@@ -36,6 +42,18 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# The standalone output above only traces what server.js needs to *serve
+# requests* — it does not include the Prisma CLI, prisma.config.ts, or
+# prisma/migrations. But the deploy pipeline runs
+# `docker exec bouathmane-app npx prisma migrate deploy` against this exact
+# running container after every release, so all three must be present here.
+# prod-deps (not the full `deps`) is used so devDependencies like jest/eslint
+# don't bloat the runtime image — prisma/dotenv/bcryptjs are real
+# `dependencies` for exactly this reason.
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
 USER nextjs
 

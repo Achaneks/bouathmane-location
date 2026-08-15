@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
-import { WHATSAPP_NUMBER } from "@/lib/constants";
+import { getWhatsAppLink } from "@/lib/utils";
 
-export function ContactCta() {
+export function ContactCta({ phone }: { phone: string }) {
   const message = "Hello, I'd like to know more about your car rental fleet.";
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const href = getWhatsAppLink(phone, message);
 
   return (
     <section id="contact" className="border-t border-border bg-surface py-24 sm:py-32">

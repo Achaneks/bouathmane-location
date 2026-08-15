@@ -1,11 +1,14 @@
 import { CarCard } from "@/components/site/car-card";
 import { CarGridItem } from "@/components/site/car-grid-item";
 import { db } from "@/lib/db";
+import { getSettings } from "@/lib/settings";
 
 export async function CarGrid() {
-  const cars = await db.car.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const [cars, settings] = await Promise.all([
+    db.car.findMany({ orderBy: { createdAt: "desc" } }),
+    getSettings(),
+  ]);
+  const phone = settings?.phone ?? "";
 
   return (
     <section id="fleet" className="bg-background py-24 sm:py-32">
@@ -30,6 +33,7 @@ export async function CarGrid() {
                   images: car.images,
                   status: car.status,
                 }}
+                phone={phone}
               />
             </CarGridItem>
           ))}

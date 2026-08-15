@@ -15,7 +15,7 @@ export type CarCardData = {
   status: CarStatus;
 };
 
-export function CarCard({ car }: { car: CarCardData }) {
+export function CarCard({ car, phone }: { car: CarCardData; phone: string }) {
   const name = `${car.make} ${car.model}`;
   const available = car.status === CarStatus.AVAILABLE;
 
@@ -49,7 +49,7 @@ export function CarCard({ car }: { car: CarCardData }) {
         </div>
 
         <div className="mt-auto">
-          <WhatsAppButton car={{ name, available }} />
+          <WhatsAppButton car={{ name, available }} phone={phone} />
         </div>
       </div>
     </div>
