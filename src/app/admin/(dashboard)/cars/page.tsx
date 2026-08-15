@@ -18,6 +18,11 @@ import { CarStatus } from "@/generated/prisma/client";
 import { PLACEHOLDER_CAR_IMAGE } from "@/lib/constants";
 import { cn, formatPrice } from "@/lib/utils";
 
+// Always reflects live inventory — must never be frozen as a build-time
+// static snapshot (and static generation would fail anyway: there's no
+// reachable database during a Docker image build).
+export const dynamic = "force-dynamic";
+
 export default async function AdminCarsPage() {
   const cars = await db.car.findMany({ orderBy: { createdAt: "desc" } });
 

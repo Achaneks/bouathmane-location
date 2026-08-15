@@ -2,6 +2,11 @@ import { SettingsForm } from "@/components/admin/settings-form";
 import { db } from "@/lib/db";
 import { normalizeSocialUrls } from "@/lib/social-links";
 
+// Always reflects live settings — must never be frozen as a build-time
+// static snapshot (and static generation would fail anyway: there's no
+// reachable database during a Docker image build).
+export const dynamic = "force-dynamic";
+
 export default async function AdminSettingsPage() {
   const settings = await db.settings.findUnique({ where: { id: "singleton" } });
 

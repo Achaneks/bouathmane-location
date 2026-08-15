@@ -14,6 +14,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# `prisma generate` only reads schema.prisma to emit client code — it never
+# connects to a database — so a placeholder keeps the real DATABASE_URL
+# secret out of the image's build layers/cache entirely.
+ARG DATABASE_URL="postgresql://user:password@localhost:5432/db"
+ENV DATABASE_URL=$DATABASE_URL
+RUN npx prisma generate
 RUN npm run build
 
 # ---- Run ----
