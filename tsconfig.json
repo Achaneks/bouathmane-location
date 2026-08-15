@@ -23,6 +23,12 @@
       }
     ],
     "paths": {
+      "@/auth": [
+        "./auth"
+      ],
+      "@/auth.config": [
+        "./auth.config"
+      ],
       "@/*": [
         "./src/*"
       ]

@@ -1,5 +1,5 @@
 import { CarForm } from "@/components/admin/car-form";
-import { createCarAction } from "@/app/admin/cars/actions";
+import { createCarAction } from "@/app/admin/(dashboard)/cars/actions";
 
 export default function NewCarPage() {
   return (

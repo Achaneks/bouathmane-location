@@ -5,12 +5,25 @@ import { AvailabilityBadge } from "@/components/site/availability-badge";
 import { StatCard } from "@/components/admin/stat-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCars, getDashboardStats } from "@/lib/data/cars";
+import { db } from "@/lib/db";
+import { CarStatus } from "@/generated/prisma/client";
+import { PLACEHOLDER_CAR_IMAGE } from "@/lib/constants";
 import { cn, formatPrice } from "@/lib/utils";
 
 export default async function AdminDashboardPage() {
-  const [stats, cars] = await Promise.all([getDashboardStats(), getCars()]);
-  const recentCars = [...cars].reverse().slice(0, 5);
+  const [totalCars, availableCars, recentCars, priceAgg] = await Promise.all([
+    db.car.count(),
+    db.car.count({ where: { status: CarStatus.AVAILABLE } }),
+    db.car.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
+    db.car.aggregate({ _avg: { pricePerDay: true } }),
+  ]);
+
+  const stats = {
+    totalCars,
+    availableCars,
+    unavailableCars: totalCars - availableCars,
+    averagePricePerDay: Math.round(Number(priceAgg._avg.pricePerDay ?? 0)),
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,17 +76,24 @@ export default async function AdminDashboardPage() {
           {recentCars.map((car) => (
             <div key={car.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
               <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-surface">
-                <Image src={car.image} alt={car.name} fill className="object-cover" />
+                <Image
+                  src={car.images[0] ?? PLACEHOLDER_CAR_IMAGE}
+                  alt={`${car.make} ${car.model}`}
+                  fill
+                  className="object-cover"
+                />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-text-primary">{car.name}</p>
-                <p className="text-sm text-text-secondary">{car.brand}</p>
+                <p className="truncate font-medium text-text-primary">
+                  {car.make} {car.model}
+                </p>
+                <p className="text-sm text-text-secondary">{car.year}</p>
               </div>
               <p className="font-medium text-gold">
-                {formatPrice(car.pricePerDay, car.currency)}
+                {formatPrice(Number(car.pricePerDay))}
                 <span className="text-xs font-normal text-text-muted">/day</span>
               </p>
-              <AvailabilityBadge available={car.available} />
+              <AvailabilityBadge available={car.status === CarStatus.AVAILABLE} />
             </div>
           ))}
         </CardContent>

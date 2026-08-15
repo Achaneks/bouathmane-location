@@ -13,11 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getCars } from "@/lib/data/cars";
+import { db } from "@/lib/db";
+import { CarStatus } from "@/generated/prisma/client";
+import { PLACEHOLDER_CAR_IMAGE } from "@/lib/constants";
 import { cn, formatPrice } from "@/lib/utils";
 
 export default async function AdminCarsPage() {
-  const cars = await getCars();
+  const cars = await db.car.findMany({ orderBy: { createdAt: "desc" } });
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,45 +54,52 @@ export default async function AdminCarsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {cars.map((car) => (
-                <TableRow key={car.id} className="border-border even:bg-surface">
-                  <TableCell>
-                    <div className="relative size-12 overflow-hidden rounded-lg bg-surface">
-                      <Image
-                        src={car.image}
-                        alt={car.name}
-                        fill
-                        className="object-cover"
+              {cars.map((car) => {
+                const name = `${car.make} ${car.model}`;
+
+                return (
+                  <TableRow key={car.id} className="border-border even:bg-surface">
+                    <TableCell>
+                      <div className="relative size-12 overflow-hidden rounded-lg bg-surface">
+                        <Image
+                          src={car.images[0] ?? PLACEHOLDER_CAR_IMAGE}
+                          alt={name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-medium text-text-primary">{name}</p>
+                      <p className="text-xs text-text-secondary">{car.year}</p>
+                    </TableCell>
+                    <TableCell className="font-medium text-gold">
+                      {formatPrice(Number(car.pricePerDay))}
+                    </TableCell>
+                    <TableCell>
+                      <AvailabilitySwitch
+                        carId={car.id}
+                        defaultChecked={car.status === CarStatus.AVAILABLE}
                       />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <p className="font-medium text-text-primary">{car.name}</p>
-                    <p className="text-xs text-text-secondary">{car.brand}</p>
-                  </TableCell>
-                  <TableCell className="font-medium text-gold">
-                    {formatPrice(car.pricePerDay, car.currency)}
-                  </TableCell>
-                  <TableCell>
-                    <AvailabilitySwitch carId={car.id} defaultChecked={car.available} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <Link
-                        href={`/admin/cars/${car.id}`}
-                        className={cn(
-                          buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                          "text-text-secondary hover:text-gold",
-                        )}
-                      >
-                        <Pencil className="size-4" />
-                        <span className="sr-only">Edit {car.name}</span>
-                      </Link>
-                      <DeleteCarButton id={car.id} name={car.name} />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/admin/cars/${car.id}`}
+                          className={cn(
+                            buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                            "text-text-secondary hover:text-gold",
+                          )}
+                        >
+                          <Pencil className="size-4" />
+                          <span className="sr-only">Edit {name}</span>
+                        </Link>
+                        <DeleteCarButton id={car.id} name={name} />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
 
               {cars.length === 0 && (
                 <TableRow className="border-border">

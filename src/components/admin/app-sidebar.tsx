@@ -1,8 +1,8 @@
 "use client";
-
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Car, ExternalLink, LayoutDashboard, PlusCircle, Settings } from "lucide-react";
+import { Car, ExternalLink, LayoutDashboard, LogOut, PlusCircle, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -114,6 +114,19 @@ export function AppSidebar() {
                   <ExternalLink />
                   <span>View Site</span>
                 </Link>
+              }
+            />
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Sign out"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+              render={
+                <button>
+                  <LogOut />
+                  <span>Sign out</span>
+                </button>
               }
             />
           </SidebarMenuItem>

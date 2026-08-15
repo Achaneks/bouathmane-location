@@ -20,15 +20,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  defaultSettings,
-  getSettings,
-  saveSettings,
-  type SiteSettings,
-} from "@/lib/settings";
+import { type SocialKey, type SocialUrls } from "@/lib/social-links";
 
 const SOCIAL_FIELDS: {
-  key: keyof SiteSettings["socials"];
+  key: SocialKey;
   label: string;
   placeholder: string;
   icon: ComponentType<{ className?: string }>;
@@ -41,38 +36,57 @@ const SOCIAL_FIELDS: {
   { key: "linkedin", label: "LinkedIn", placeholder: "https://linkedin.com/company/yourpage", icon: LinkedinIcon },
 ];
 
-export function SettingsForm() {
-  const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
-  const [showToast, setShowToast] = useState(false);
+export interface SettingsFormValues {
+  phone: string;
+  email: string;
+  tagline: string;
+  socialUrls: SocialUrls;
+}
+
+export function SettingsForm({ settings }: { settings: SettingsFormValues }) {
+  const [phone, setPhone] = useState(settings.phone);
+  const [email, setEmail] = useState(settings.email);
+  const [tagline, setTagline] = useState(settings.tagline);
+  const [socialUrls, setSocialUrls] = useState<SocialUrls>(settings.socialUrls);
+  const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setSettings(getSettings());
-  }, []);
-
-  useEffect(() => {
-    if (!showToast) return;
-    const timer = setTimeout(() => setShowToast(false), 2500);
+    if (status !== "success" && status !== "error") return;
+    const timer = setTimeout(() => setStatus("idle"), 2500);
     return () => clearTimeout(timer);
-  }, [showToast]);
+  }, [status]);
 
-  function updateField<K extends keyof SiteSettings>(key: K, value: SiteSettings[K]) {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+  function updateSocial(key: SocialKey, value: string) {
+    setSocialUrls((prev) => ({ ...prev, [key]: value }));
   }
 
-  function updateSocial(key: keyof SiteSettings["socials"], value: string) {
-    setSettings((prev) => ({
-      ...prev,
-      socials: { ...prev.socials, [key]: value },
-    }));
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    saveSettings(settings);
-    setShowToast(true);
+    setStatus("saving");
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, email, tagline, socialUrls }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to save settings.");
+      }
+
+      setStatus("success");
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to save settings.");
+    }
   }
 
-  const filledSocials = SOCIAL_FIELDS.filter(({ key }) => settings.socials[key].trim());
+  const filledSocials = SOCIAL_FIELDS.filter(({ key }) => socialUrls[key].trim());
+  const isSaving = status === "saving";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -86,6 +100,18 @@ export function SettingsForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="tagline">Tagline</Label>
+            <Input
+              id="tagline"
+              name="tagline"
+              placeholder="e.g. Luxury car rentals, redefined."
+              value={tagline}
+              onChange={(event) => setTagline(event.target.value)}
+              disabled={isSaving}
+            />
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="phone">Phone Number</Label>
@@ -93,8 +119,9 @@ export function SettingsForm() {
                 id="phone"
                 name="phone"
                 placeholder="+212 6XX XXX XXX"
-                value={settings.phone}
-                onChange={(event) => updateField("phone", event.target.value)}
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                disabled={isSaving}
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -104,8 +131,9 @@ export function SettingsForm() {
                 name="email"
                 type="email"
                 placeholder="contact@example.com"
-                value={settings.email}
-                onChange={(event) => updateField("email", event.target.value)}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={isSaving}
               />
             </div>
           </div>
@@ -115,11 +143,11 @@ export function SettingsForm() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
               <span className="flex items-center gap-2 text-sm text-text-secondary">
                 <Phone className="size-4 text-gold" />
-                {settings.phone || "—"}
+                {phone || "—"}
               </span>
               <span className="flex items-center gap-2 text-sm text-text-secondary">
                 <Mail className="size-4 text-gold" />
-                {settings.email || "—"}
+                {email || "—"}
               </span>
             </div>
           </div>
@@ -147,8 +175,9 @@ export function SettingsForm() {
                     name={key}
                     placeholder={placeholder}
                     className="pl-9"
-                    value={settings.socials[key]}
+                    value={socialUrls[key]}
                     onChange={(event) => updateSocial(key, event.target.value)}
+                    disabled={isSaving}
                   />
                 </div>
               </div>
@@ -176,12 +205,19 @@ export function SettingsForm() {
       </Card>
 
       <div className="flex justify-end">
-        <Button type="submit">Save Changes</Button>
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? "Saving…" : "Save Changes"}
+        </Button>
       </div>
 
-      {showToast && (
+      {status === "success" && (
         <div className="fixed bottom-6 right-6 z-50 rounded-lg border border-available/30 bg-available/15 px-4 py-3 text-sm font-medium text-available shadow-lg">
           Settings saved
+        </div>
+      )}
+      {status === "error" && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-lg border border-unavailable/30 bg-unavailable/15 px-4 py-3 text-sm font-medium text-unavailable shadow-lg">
+          {errorMessage ?? "Failed to save settings."}
         </div>
       )}
     </form>

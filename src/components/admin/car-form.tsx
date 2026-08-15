@@ -21,18 +21,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { FUEL_TYPES, TRANSMISSIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import type { Car } from "@/lib/types";
+import { CarStatus } from "@/generated/prisma/enums";
+
+const STATUS_LABELS: Record<CarStatus, string> = {
+  AVAILABLE: "Available",
+  RENTED: "Rented",
+  MAINTENANCE: "Maintenance",
+};
+
+export interface CarFormValues {
+  make: string;
+  model: string;
+  year: number;
+  pricePerDay: number;
+  description: string;
+  status: CarStatus;
+  image: string;
+}
 
 export function CarForm({
   car,
   action,
   submitLabel = "Save Car",
 }: {
-  car?: Car;
+  car?: CarFormValues;
   action: (formData: FormData) => void | Promise<void>;
   submitLabel?: string;
 }) {
@@ -58,24 +72,39 @@ export function CarForm({
             <CardDescription>Basic information shown to customers.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2 sm:col-span-2">
-              <Label htmlFor="name">Car name</Label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="make">Make</Label>
               <Input
-                id="name"
-                name="name"
-                placeholder="e.g. Mercedes-Benz C-Class"
-                defaultValue={car?.name}
+                id="make"
+                name="make"
+                placeholder="e.g. Mercedes-Benz"
+                defaultValue={car?.make}
                 required
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="brand">Brand</Label>
+              <Label htmlFor="model">Model</Label>
               <Input
-                id="brand"
-                name="brand"
-                placeholder="e.g. Mercedes-Benz"
-                defaultValue={car?.brand}
+                id="model"
+                name="model"
+                placeholder="e.g. S-Class"
+                defaultValue={car?.model}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="year">Year</Label>
+              <Input
+                id="year"
+                name="year"
+                type="number"
+                min={1990}
+                max={2100}
+                step={1}
+                placeholder="e.g. 2024"
+                defaultValue={car?.year}
                 required
               />
             </div>
@@ -88,76 +117,20 @@ export function CarForm({
                 type="number"
                 min={0}
                 step={1}
-                placeholder="e.g. 1200"
+                placeholder="e.g. 2500"
                 defaultValue={car?.pricePerDay}
                 required
               />
             </div>
 
             <div className="flex flex-col gap-2 sm:col-span-2">
-              <Label htmlFor="description">Description (optional)</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 name="description"
                 placeholder="A short description shown on the car details."
                 defaultValue={car?.description}
                 rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border">
-          <CardHeader>
-            <CardTitle className="font-heading text-lg italic text-text-primary">Specifications</CardTitle>
-            <CardDescription>Help renters know what to expect.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="fuelType">Fuel type</Label>
-              <Select name="fuelType" defaultValue={car?.fuelType ?? FUEL_TYPES[0]}>
-                <SelectTrigger id="fuelType" className="w-full">
-                  <SelectValue placeholder="Select fuel type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {FUEL_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="transmission">Transmission</Label>
-              <Select
-                name="transmission"
-                defaultValue={car?.transmission ?? TRANSMISSIONS[0]}
-              >
-                <SelectTrigger id="transmission" className="w-full">
-                  <SelectValue placeholder="Select transmission" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRANSMISSIONS.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="seats">Seats</Label>
-              <Input
-                id="seats"
-                name="seats"
-                type="number"
-                min={1}
-                max={9}
-                step={1}
-                defaultValue={car?.seats ?? 5}
                 required
               />
             </div>
@@ -208,29 +181,31 @@ export function CarForm({
             />
             <p className="text-xs text-text-muted">
               For this MVP, images are stored locally in the browser session.
-              Connect a storage provider (e.g. S3, Cloudinary) when wiring up
-              the backend.
+              Connect VPS filesystem storage when wiring up uploads.
             </p>
           </CardContent>
         </Card>
 
         <Card className="border border-border">
           <CardHeader>
-            <CardTitle className="font-heading text-lg italic text-text-primary">Availability</CardTitle>
-            <CardDescription>
-              Toggle whether this car can be booked right now.
-            </CardDescription>
+            <CardTitle className="font-heading text-lg italic text-text-primary">Status</CardTitle>
+            <CardDescription>Set whether this car can be booked right now.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex items-center justify-between rounded-lg border border-border p-3">
-              <Label htmlFor="available" className="cursor-pointer">
-                Available for rent
-              </Label>
-              <Switch
-                id="available"
-                name="available"
-                defaultChecked={car?.available ?? true}
-              />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="status">Availability status</Label>
+              <Select name="status" defaultValue={car?.status ?? CarStatus.AVAILABLE}>
+                <SelectTrigger id="status" className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(CarStatus).map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {STATUS_LABELS[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex flex-col gap-2">

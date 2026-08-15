@@ -1,9 +1,11 @@
 import { CarCard } from "@/components/site/car-card";
 import { CarGridItem } from "@/components/site/car-grid-item";
-import { getCars } from "@/lib/data/cars";
+import { db } from "@/lib/db";
 
 export async function CarGrid() {
-  const cars = await getCars();
+  const cars = await db.car.findMany({
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <section id="fleet" className="bg-background py-24 sm:py-32">
@@ -18,7 +20,17 @@ export async function CarGrid() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {cars.map((car, index) => (
             <CarGridItem key={car.id} index={index}>
-              <CarCard car={car} />
+              <CarCard
+                car={{
+                  id: car.id,
+                  make: car.make,
+                  model: car.model,
+                  year: car.year,
+                  pricePerDay: Number(car.pricePerDay),
+                  images: car.images,
+                  status: car.status,
+                }}
+              />
             </CarGridItem>
           ))}
         </div>

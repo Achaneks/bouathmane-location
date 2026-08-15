@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Switch } from "@/components/ui/switch";
-import { toggleAvailabilityAction } from "@/app/admin/cars/actions";
+import { toggleAvailabilityAction } from "@/app/admin/(dashboard)/cars/actions";
 
 export function AvailabilitySwitch({
   carId,

@@ -1,13 +1,12 @@
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import { getWhatsAppLink } from "@/lib/utils";
-import type { Car } from "@/lib/types";
 
 export function WhatsAppButton({
   car,
   className,
 }: {
-  car: Pick<Car, "name" | "available">;
+  car: { name: string; available: boolean };
   className?: string;
 }) {
   if (!car.available) {

@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Mail, Phone } from "lucide-react";
 import {
@@ -11,20 +9,9 @@ import {
   YoutubeIcon,
 } from "@/components/icons/social-icons";
 import { Logo } from "@/components/site/logo";
-import { useSettings } from "@/hooks/use-settings";
-import { SITE_NAME } from "@/lib/constants";
-import type { SiteSettings } from "@/lib/settings";
-
-type SocialKey = keyof SiteSettings["socials"];
-
-const SOCIAL_KEYS: SocialKey[] = [
-  "instagram",
-  "tiktok",
-  "facebook",
-  "youtube",
-  "twitter",
-  "linkedin",
-];
+import { db } from "@/lib/db";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/constants";
+import { normalizeSocialUrls, SOCIAL_KEYS, type SocialKey } from "@/lib/social-links";
 
 const SOCIAL_ICON_RULES: {
   test: (url: string) => boolean;
@@ -42,8 +29,12 @@ function getSocialIcon(url: string) {
   return SOCIAL_ICON_RULES.find(({ test }) => test(url))?.icon ?? null;
 }
 
-export function Footer() {
-  const settings = useSettings();
+export async function Footer() {
+  const settings = await db.settings.findUnique({ where: { id: "singleton" } });
+  const socialUrls = normalizeSocialUrls(settings?.socialUrls);
+  const phone = settings?.phone ?? "";
+  const email = settings?.email ?? "";
+  const tagline = settings?.tagline ?? "";
   const year = new Date().getFullYear();
 
   return (
@@ -54,9 +45,9 @@ export function Footer() {
             <Link href="#hero" aria-label={SITE_NAME}>
               <Logo />
             </Link>
-            <p className="font-heading text-lg italic text-gold">{settings.tagline}</p>
+            <p className="font-heading text-lg italic text-gold">{tagline}</p>
             <p className="line-clamp-2 max-w-xs text-sm text-text-secondary">
-              {settings.description}
+              {SITE_DESCRIPTION}
             </p>
           </div>
 
@@ -66,18 +57,18 @@ export function Footer() {
             </h3>
             <div className="flex flex-col gap-3">
               <a
-                href={`tel:${settings.phone}`}
+                href={`tel:${phone}`}
                 className="flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-gold"
               >
                 <Phone className="size-4 text-gold" />
-                {settings.phone}
+                {phone}
               </a>
               <a
-                href={`mailto:${settings.email}`}
+                href={`mailto:${email}`}
                 className="flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-gold"
               >
                 <Mail className="size-4 text-gold" />
-                {settings.email}
+                {email}
               </a>
             </div>
           </div>
@@ -87,8 +78,8 @@ export function Footer() {
               Follow Us
             </h3>
             <div className="flex items-center gap-3">
-              {SOCIAL_KEYS.map((key) => {
-                const url = settings.socials[key];
+              {SOCIAL_KEYS.map((key: SocialKey) => {
+                const url = socialUrls[key];
                 if (!url) return null;
 
                 const Icon = getSocialIcon(url);
