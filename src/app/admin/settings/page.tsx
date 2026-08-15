@@ -12,4 +12,5 @@ export default function AdminSettingsPage() {
       <SettingsForm />
     </div>
   );
+  
 }
