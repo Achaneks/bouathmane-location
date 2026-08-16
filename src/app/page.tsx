@@ -3,6 +3,7 @@ import { ContactCta } from "@/components/site/contact-cta";
 import { Footer } from "@/components/site/footer";
 import { Hero } from "@/components/site/hero";
 import { Navbar } from "@/components/site/navbar";
+import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
 import { getSettings } from "@/lib/settings";
 
 // Renders live car inventory and settings (via CarGrid/Footer) — must never
@@ -14,7 +15,7 @@ export default async function Home() {
   const settings = await getSettings();
 
   return (
-    <>
+    <SmoothScrollProvider>
       <Navbar />
       <main className="flex-1">
         <Hero />
@@ -22,6 +23,6 @@ export default async function Home() {
         <ContactCta phone={settings?.phone ?? ""} />
       </main>
       <Footer />
-    </>
+    </SmoothScrollProvider>
   );
 }

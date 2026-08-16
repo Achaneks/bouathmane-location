@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/constants";
 import "./globals.css";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const cormorant = Cormorant_Garamond({
@@ -15,6 +15,7 @@ const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: "variable",
   style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -36,9 +37,7 @@ export default function RootLayout({
       className={`dark ${inter.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <SmoothScrollProvider>
-          <TooltipProvider delay={150}>{children}</TooltipProvider>
-        </SmoothScrollProvider>
+        <TooltipProvider delay={150}>{children}</TooltipProvider>
       </body>
     </html>
   );
