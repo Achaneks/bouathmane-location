@@ -33,6 +33,7 @@ export default async function EditCarPage({
         }}
         action={updateCarAction.bind(null, id)}
         submitLabel="Save Changes"
+        pendingLabel="Saving..."
       />
     </div>
   );

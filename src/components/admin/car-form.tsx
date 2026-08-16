@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type ChangeEvent } from "react";
+import { useState, useTransition, type ChangeEvent, type FormEvent } from "react";
 import { ImagePlus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -45,12 +45,15 @@ export function CarForm({
   car,
   action,
   submitLabel = "Save Car",
+  pendingLabel = "Saving...",
 }: {
   car?: CarFormValues;
   action: (formData: FormData) => void | Promise<void>;
   submitLabel?: string;
+  pendingLabel?: string;
 }) {
   const [imagePreview, setImagePreview] = useState(car?.image ?? "");
+  const [isPending, startTransition] = useTransition();
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -61,8 +64,16 @@ export function CarForm({
     reader.readAsDataURL(file);
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => {
+      action(formData);
+    });
+  }
+
   return (
-    <form action={action} className="grid gap-6 lg:grid-cols-3">
+    <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
       <input type="hidden" name="image" value={imagePreview} />
 
       <div className="flex flex-col gap-6 lg:col-span-2">
@@ -110,7 +121,7 @@ export function CarForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="pricePerDay">Price per day (MAD)</Label>
+              <Label htmlFor="pricePerDay">Price Per Day (MAD)</Label>
               <Input
                 id="pricePerDay"
                 name="pricePerDay"
@@ -193,7 +204,7 @@ export function CarForm({
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="status">Availability status</Label>
+              <Label htmlFor="status">Status</Label>
               <Select name="status" defaultValue={car?.status ?? CarStatus.AVAILABLE}>
                 <SelectTrigger id="status" className="w-full">
                   <SelectValue placeholder="Select status" />
@@ -209,8 +220,8 @@ export function CarForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Button type="submit" className="w-full">
-                {submitLabel}
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? pendingLabel : submitLabel}
               </Button>
               <Link
                 href="/admin/cars"

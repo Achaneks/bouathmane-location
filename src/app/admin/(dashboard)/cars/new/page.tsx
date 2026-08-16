@@ -10,7 +10,7 @@ export default function NewCarPage() {
           Add a new vehicle to your rental fleet.
         </p>
       </div>
-      <CarForm action={createCarAction} submitLabel="Add Car" />
+      <CarForm action={createCarAction} submitLabel="Add Car" pendingLabel="Adding car..." />
     </div>
   );
 }
