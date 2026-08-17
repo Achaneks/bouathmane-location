@@ -12,6 +12,11 @@ const HeroCanvas = dynamic(() => import("@/components/site/hero-canvas"), {
   ),
 });
 
+const HeroCarCanvas = dynamic(() => import("@/components/site/hero-car-canvas"), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 bg-[#0A0A0B]/40" />,
+});
+
 const containerVariants = {
   hidden: {},
   visible: {
@@ -30,7 +35,7 @@ const itemVariants = {
 
 export function Hero() {
   const { scrollY } = useScroll();
-  const textY = useTransform(scrollY, (value) => value * -0.4);
+  const textY = useTransform(scrollY, (value) => value * -0.2);
   const canvasY = useTransform(scrollY, (value) => value * -0.2);
   const [canvasActive, setCanvasActive] = useState(true);
 
@@ -47,7 +52,7 @@ export function Hero() {
 
       <section
         id="hero"
-        className="relative flex h-[100svh] min-h-[640px] w-full items-center"
+        className="relative grid h-[100svh] min-h-[640px] w-full grid-rows-[45%_55%] md:grid-cols-2 md:grid-rows-1"
       >
         <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-transparent to-background" />
 
@@ -56,7 +61,7 @@ export function Hero() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-start px-4 text-left sm:px-6 lg:px-8"
+          className="relative z-10 flex flex-col items-start justify-center px-4 pt-[20vh] text-left sm:px-6 md:pt-0 md:pl-60 lg:pl-32"
         >
           <motion.span
             variants={itemVariants}
@@ -67,7 +72,7 @@ export function Hero() {
 
           <motion.h1
             variants={itemVariants}
-            className="font-heading text-6xl italic leading-[1.05] text-text-primary sm:text-7xl lg:text-8xl"
+            className="font-heading text-5xl italic leading-[1.05] text-text-primary sm:text-6xl md:text-7xl lg:text-8xl"
           >
             Bouathmane Location
           </motion.h1>
@@ -89,13 +94,17 @@ export function Hero() {
           </motion.div>
         </motion.div>
 
+        <div className="relative z-10 h-full w-full">
+          <HeroCarCanvas active={canvasActive} />
+        </div>
+
         <motion.a
           href="#fleet"
           aria-label="Scroll to fleet"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-text-secondary transition-colors hover:text-gold"
+          className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2 text-text-secondary transition-colors hover:text-gold"
         >
           <motion.span
             animate={{ y: [0, 8, 0] }}

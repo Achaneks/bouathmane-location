@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, Component, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, Component, type ReactNode } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, Sparkles, Stars, useGLTF } from "@react-three/drei";
 import { Box3, Mesh, MeshPhysicalMaterial, Vector3, type Group } from "three";
@@ -17,25 +17,33 @@ const SIGNAL_MATERIAL_NAMES = new Set(["Turn_Signal_LED"]);
 const HEADLIGHT_MATERIAL_NAMES = new Set(["Projector_Glass"]);
 const CALIPER_MESH_PATTERN = /^brake(_\d+)?$/;
 
-export type ResponsiveTier = "mobile" | "tablet" | "desktop";
+/**
+ * Starfield background — rendered in a separate, full-screen fixed Canvas
+ * behind everything. No lighting needed (Stars/Sparkles are self-lit), so
+ * it stays lightweight and independent of the car scene.
+ */
+export function HeroStarfield() {
+  return (
+    <>
+      <Stars radius={150} depth={80} count={9000} factor={3} saturation={0.4} fade speed={0.3} />
+      <Stars radius={100} depth={50} count={400} factor={8} saturation={0.5} fade speed={0.6} />
+      <Sparkles count={70} scale={[16, 9, 10]} size={2.5} speed={0.25} color="#C9A84C" opacity={0.6} />
+    </>
+  );
+}
 
-const SCALE_MULTIPLIER: Record<ResponsiveTier, number> = {
-  mobile: 3,
-  tablet: 1.5,
-  desktop: 1,
-};
-
-// z=6 is the desktop baseline; mobile moves 40% closer per spec.
-const CAMERA_Z: Record<ResponsiveTier, number> = {
-  mobile: 6 * 0.6,
-  tablet: 6,
-  desktop: 6,
-};
-
-function CarModel({ tier }: { tier: ResponsiveTier }) {
+function CarModel() {
   const groupRef = useRef<Group>(null);
   const { scene } = useGLTF(CAR_MODEL_URL);
   const { viewport } = useThree();
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsDesktop(window.innerWidth >= 768);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const { model, scale, center, size } = useMemo(() => {
     const cloned = scene.clone(true);
@@ -168,18 +176,25 @@ function CarModel({ tier }: { tier: ResponsiveTier }) {
     box.getCenter(boxCenter);
 
     const horizontal = Math.max(size.x, size.z);
-    const isPortrait = viewport.width < viewport.height;
-    const scaleFactor = isPortrait ? 0.45 : 0.62;
-    const tierMultiplier = SCALE_MULTIPLIER[tier];
+    const vertical = size.y;
+
+    // "Contain" fit: the car now lives in its own dedicated container
+    // (a grid cell, not a full-screen canvas shared with text), so it no
+    // longer needs to dodge anything — just fit within whatever width/height
+    // that container gives it. Taking the smaller of the two candidate
+    // scales guarantees it never overflows either axis, regardless of the
+    // container's aspect ratio (wide-short on mobile, narrow-tall on desktop).
+    const widthFitFactor = isDesktop ? 0.7 * 0.75 : 0.7; // 25% smaller fit-width on desktop only, fixes right-edge cutoff
+    const scaleToFitWidth = horizontal > 0 ? (viewport.width * widthFitFactor) / horizontal : 1;
+    const scaleToFitHeight = vertical > 0 ? (viewport.height * 0.65) / vertical : 1;
 
     return {
       model: cloned,
-      scale:
-        horizontal > 0 ? ((viewport.width * scaleFactor) / horizontal) * tierMultiplier : 1,
+      scale: Math.min(scaleToFitWidth, scaleToFitHeight),
       center: boxCenter,
       size,
     };
-  }, [scene, viewport.width, viewport.height, tier]);
+  }, [scene, viewport.width, viewport.height, isDesktop]);
 
   useFrame(() => {
     if (groupRef.current) {
@@ -187,18 +202,8 @@ function CarModel({ tier }: { tier: ResponsiveTier }) {
     }
   });
 
-  const isPortrait = viewport.width < viewport.height;
-
   return (
-    <group
-      ref={groupRef}
-      position={[
-        viewport.width * (isPortrait ? 0.46 : 0.34),
-        -viewport.height * (isPortrait ? 0.24 : 0.16),
-        0,
-      ]}
-      scale={scale}
-    >
+    <group ref={groupRef} position={[0, 0, 0]} scale={scale}>
       <primitive object={model} position={[-center.x, -center.y, -center.z]} />
       <ContactShadows
         position={[0, -size.y / 2 + 0.005, 0]}
@@ -229,29 +234,17 @@ class CarErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
   }
 }
 
-// Imperatively updates the camera rather than relying on <Canvas camera={...}>
-// reacting to prop changes after mount, so a resize across a breakpoint
-// (e.g. rotating the device) reliably moves the camera.
-function ResponsiveCamera({ tier }: { tier: ResponsiveTier }) {
-  const { camera } = useThree();
-
-  useEffect(() => {
-    camera.position.set(0, 0.8, CAMERA_Z[tier]);
-    camera.updateProjectionMatrix();
-  }, [camera, tier]);
-
-  return null;
-}
-
-export function HeroScene({ tier }: { tier: ResponsiveTier }) {
+/**
+ * Car scene — rendered in its own Canvas, sized by its grid container
+ * (right column on desktop, bottom strip on mobile). Carries its own
+ * lighting rig since a separate WebGL context shares nothing with the
+ * starfield canvas. The car is centered at the origin and the default
+ * camera (positioned on-axis, no X offset) looks straight down -Z through
+ * it, so no explicit lookAt/tracking logic is needed anymore.
+ */
+export function HeroCarScene() {
   return (
     <>
-      <ResponsiveCamera tier={tier} />
-
-      <Stars radius={150} depth={80} count={9000} factor={3} saturation={0.4} fade speed={0.3} />
-      <Stars radius={100} depth={50} count={400} factor={8} saturation={0.5} fade speed={0.6} />
-      <Sparkles count={70} scale={[16, 9, 10]} size={2.5} speed={0.25} color="#C9A84C" opacity={0.6} />
-
       <Environment resolution={256}>
         <Lightformer form="rect" color="#C9A84C" intensity={8} position={[-6, 5, 4]} scale={[6, 10, 1]} target={[0, 0, 0]} />
         <Lightformer form="rect" color="#ffffff" intensity={13} position={[6, 1, 3]} scale={[6, 10, 1]} target={[0, 0, 0]} />
@@ -265,7 +258,7 @@ export function HeroScene({ tier }: { tier: ResponsiveTier }) {
 
       <Suspense fallback={null}>
         <CarErrorBoundary>
-          <CarModel tier={tier} />
+          <CarModel />
         </CarErrorBoundary>
       </Suspense>
     </>

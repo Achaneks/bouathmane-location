@@ -2,11 +2,10 @@
 
 import { Component, Suspense, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
-import { motion, type MotionValue } from "framer-motion";
-import { HeroStarfield } from "@/components/site/hero-scene";
+import { HeroCarScene } from "@/components/site/hero-scene";
 
 function CanvasFallback() {
-  return <div className="absolute inset-0 bg-[#0A0A0B]" />;
+  return <div className="absolute inset-0" />;
 }
 
 class CanvasErrorBoundary extends Component<
@@ -26,32 +25,27 @@ class CanvasErrorBoundary extends Component<
 }
 
 /**
- * Full-screen fixed starfield background, behind everything (-z-10). The
- * car lives in its own grid-contained canvas (see hero-car-canvas.tsx) so
- * it can never overlap the hero text — this canvas only ever renders the
- * starfield/particles.
+ * Car canvas — fills whatever container it's placed in (the hero's grid
+ * cell: right column on desktop, bottom strip on mobile). Unlike the
+ * starfield canvas, this is NOT position:fixed/absolute over the full
+ * screen — its size comes entirely from its parent container via normal
+ * layout, which is what keeps it from ever overlapping the hero text.
  */
-export default function HeroCanvas({
-  y,
-  active,
-}: {
-  y: MotionValue<number>;
-  active: boolean;
-}) {
+export default function HeroCarCanvas({ active }: { active: boolean }) {
   return (
-    <motion.div style={{ y }} className="pointer-events-none fixed inset-0 -z-10">
+    <div className="relative h-full w-full">
       <CanvasErrorBoundary>
         <Suspense fallback={<CanvasFallback />}>
           <Canvas
-            camera={{ position: [0, 0.8, 6], fov: 42 }}
+            camera={{ position: [0, 0.6, 5.5], fov: 40 }}
             gl={{ antialias: true, alpha: true }}
             dpr={[1, 1.5]}
             frameloop={active ? "always" : "never"}
           >
-            <HeroStarfield />
+            <HeroCarScene />
           </Canvas>
         </Suspense>
       </CanvasErrorBoundary>
-    </motion.div>
+    </div>
   );
 }

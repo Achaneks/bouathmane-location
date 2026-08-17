@@ -1,4 +1,5 @@
 import Link from "next/link";
+import NextTopLoader from "nextjs-toploader";
 import { AppSidebar } from "@/components/admin/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -14,6 +15,7 @@ export default function AdminLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <SidebarProvider style={{ "--sidebar-width": "240px" } as React.CSSProperties}>
+      <NextTopLoader color="#C9A84C" height={3} showSpinner={false} />
       <AppSidebar />
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur-md">

@@ -3,6 +3,7 @@ import type { Config } from "jest";
 const config: Config = {
   testEnvironment: "jsdom",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  modulePathIgnorePatterns: ["<rootDir>/.next/"],
   moduleNameMapper: {
     "^@/auth$": "<rootDir>/auth.ts",
     "^@/auth\\.config$": "<rootDir>/auth.config.ts",
