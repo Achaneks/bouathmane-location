@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition, type ChangeEvent, type FormEvent } from "react";
-import { ImagePlus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
+import { CheckCircle2, ImagePlus, Loader2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -31,6 +32,8 @@ const STATUS_LABELS: Record<CarStatus, string> = {
   MAINTENANCE: "Maintenance",
 };
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
 export interface CarFormValues {
   make: string;
   model: string;
@@ -41,24 +44,49 @@ export interface CarFormValues {
   image: string;
 }
 
+type FormStatus = "idle" | "pending" | "success";
+
 export function CarForm({
   car,
   action,
   submitLabel = "Save Car",
   pendingLabel = "Saving...",
+  successLabel = "Saved successfully",
 }: {
   car?: CarFormValues;
   action: (formData: FormData) => void | Promise<void>;
   submitLabel?: string;
   pendingLabel?: string;
+  successLabel?: string;
 }) {
+  const router = useRouter();
   const [imagePreview, setImagePreview] = useState(car?.image ?? "");
-  const [isPending, startTransition] = useTransition();
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const [status, setStatus] = useState<FormStatus>("idle");
+  // Guards against mobile's touch+click double-fire triggering two submits
+  // before React re-renders the disabled button.
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    if (status !== "success") return;
+    const timer = setTimeout(() => {
+      router.push("/admin/cars");
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [status, router]);
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError(`Image '${file.name}' is too large (max 5MB per image)`);
+      event.target.value = "";
+      return;
+    }
+
+    setImageError(null);
     const reader = new FileReader();
     reader.onload = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
@@ -66,11 +94,26 @@ export function CarForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingRef.current || imageError) return;
+    submittingRef.current = true;
+
     const formData = new FormData(event.currentTarget);
-    startTransition(() => {
-      action(formData);
+    setStatus("pending");
+
+    startTransition(async () => {
+      try {
+        await action(formData);
+        setStatus("success");
+      } catch (error) {
+        setStatus("idle");
+        throw error;
+      } finally {
+        submittingRef.current = false;
+      }
     });
   }
+
+  const isBusy = status !== "idle";
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
@@ -186,10 +229,18 @@ export function CarForm({
             <input
               id="imageUpload"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="sr-only"
               onChange={handleImageChange}
             />
+            {imageError && (
+              <p role="alert" className="text-xs text-unavailable">
+                {imageError}
+              </p>
+            )}
+            <p className="text-xs text-text-muted">
+              Max 5MB per image. Accepted: JPG, PNG, WebP
+            </p>
             <p className="text-xs text-text-muted">
               For this MVP, images are stored locally in the browser session.
               Connect VPS filesystem storage when wiring up uploads.
@@ -210,9 +261,9 @@ export function CarForm({
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(CarStatus).map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {STATUS_LABELS[status]}
+                  {Object.values(CarStatus).map((statusOption) => (
+                    <SelectItem key={statusOption} value={statusOption}>
+                      {STATUS_LABELS[statusOption]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -220,8 +271,27 @@ export function CarForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? pendingLabel : submitLabel}
+              <Button
+                type="submit"
+                className={cn(
+                  "w-full gap-2",
+                  status === "success" && "bg-available text-background hover:bg-available",
+                )}
+                disabled={isBusy}
+              >
+                {status === "pending" && (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {pendingLabel}
+                  </>
+                )}
+                {status === "success" && (
+                  <>
+                    <CheckCircle2 className="size-4" />
+                    {successLabel}
+                  </>
+                )}
+                {status === "idle" && submitLabel}
               </Button>
               <Link
                 href="/admin/cars"

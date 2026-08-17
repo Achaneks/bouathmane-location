@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useRef, Component, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useRef, Component, type ReactNode } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, Sparkles, Stars, useGLTF } from "@react-three/drei";
 import { Box3, Mesh, MeshPhysicalMaterial, Vector3, type Group } from "three";
@@ -17,7 +17,22 @@ const SIGNAL_MATERIAL_NAMES = new Set(["Turn_Signal_LED"]);
 const HEADLIGHT_MATERIAL_NAMES = new Set(["Projector_Glass"]);
 const CALIPER_MESH_PATTERN = /^brake(_\d+)?$/;
 
-function CarModel() {
+export type ResponsiveTier = "mobile" | "tablet" | "desktop";
+
+const SCALE_MULTIPLIER: Record<ResponsiveTier, number> = {
+  mobile: 3,
+  tablet: 1.5,
+  desktop: 1,
+};
+
+// z=6 is the desktop baseline; mobile moves 40% closer per spec.
+const CAMERA_Z: Record<ResponsiveTier, number> = {
+  mobile: 6 * 0.6,
+  tablet: 6,
+  desktop: 6,
+};
+
+function CarModel({ tier }: { tier: ResponsiveTier }) {
   const groupRef = useRef<Group>(null);
   const { scene } = useGLTF(CAR_MODEL_URL);
   const { viewport } = useThree();
@@ -155,14 +170,16 @@ function CarModel() {
     const horizontal = Math.max(size.x, size.z);
     const isPortrait = viewport.width < viewport.height;
     const scaleFactor = isPortrait ? 0.45 : 0.62;
+    const tierMultiplier = SCALE_MULTIPLIER[tier];
 
     return {
       model: cloned,
-      scale: horizontal > 0 ? (viewport.width * scaleFactor) / horizontal : 1,
+      scale:
+        horizontal > 0 ? ((viewport.width * scaleFactor) / horizontal) * tierMultiplier : 1,
       center: boxCenter,
       size,
     };
-  }, [scene, viewport.width, viewport.height]);
+  }, [scene, viewport.width, viewport.height, tier]);
 
   useFrame(() => {
     if (groupRef.current) {
@@ -212,9 +229,25 @@ class CarErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
   }
 }
 
-export function HeroScene() {
+// Imperatively updates the camera rather than relying on <Canvas camera={...}>
+// reacting to prop changes after mount, so a resize across a breakpoint
+// (e.g. rotating the device) reliably moves the camera.
+function ResponsiveCamera({ tier }: { tier: ResponsiveTier }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    camera.position.set(0, 0.8, CAMERA_Z[tier]);
+    camera.updateProjectionMatrix();
+  }, [camera, tier]);
+
+  return null;
+}
+
+export function HeroScene({ tier }: { tier: ResponsiveTier }) {
   return (
     <>
+      <ResponsiveCamera tier={tier} />
+
       <Stars radius={150} depth={80} count={9000} factor={3} saturation={0.4} fade speed={0.3} />
       <Stars radius={100} depth={50} count={400} factor={8} saturation={0.5} fade speed={0.6} />
       <Sparkles count={70} scale={[16, 9, 10]} size={2.5} speed={0.25} color="#C9A84C" opacity={0.6} />
@@ -232,7 +265,7 @@ export function HeroScene() {
 
       <Suspense fallback={null}>
         <CarErrorBoundary>
-          <CarModel />
+          <CarModel tier={tier} />
         </CarErrorBoundary>
       </Suspense>
     </>

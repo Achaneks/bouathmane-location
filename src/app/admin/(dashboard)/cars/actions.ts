@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { CarStatus } from "@/generated/prisma/client";
 import { PLACEHOLDER_CAR_IMAGE } from "@/lib/constants";
@@ -71,7 +70,6 @@ export async function createCarAction(formData: FormData) {
   await db.car.create({ data: { ...input, slug } });
 
   refreshCarPaths();
-  redirect("/admin/cars");
 }
 
 export async function updateCarAction(id: string, formData: FormData) {
@@ -81,7 +79,6 @@ export async function updateCarAction(id: string, formData: FormData) {
   await db.car.update({ where: { id }, data: { ...input, slug } });
 
   refreshCarPaths();
-  redirect("/admin/cars");
 }
 
 export async function deleteCarAction(id: string) {
@@ -89,15 +86,7 @@ export async function deleteCarAction(id: string) {
   refreshCarPaths();
 }
 
-export async function toggleAvailabilityAction(id: string) {
-  const car = await db.car.findUnique({ where: { id }, select: { status: true } });
-  if (!car) return;
-
-  // The list view only offers a binary on/off switch; RENTED is set
-  // elsewhere once bookings exist, so the switch toggles AVAILABLE <-> MAINTENANCE.
-  const nextStatus =
-    car.status === CarStatus.AVAILABLE ? CarStatus.MAINTENANCE : CarStatus.AVAILABLE;
-
-  await db.car.update({ where: { id }, data: { status: nextStatus } });
+export async function updateCarStatusAction(id: string, status: CarStatus) {
+  await db.car.update({ where: { id }, data: { status } });
   refreshCarPaths();
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { Mail, Phone } from "lucide-react";
 import {
   FacebookIcon,
@@ -50,6 +50,7 @@ export function SettingsForm({ settings }: { settings: SettingsFormValues }) {
   const [socialUrls, setSocialUrls] = useState<SocialUrls>(settings.socialUrls);
   const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (status !== "success" && status !== "error") return;
@@ -63,6 +64,9 @@ export function SettingsForm({ settings }: { settings: SettingsFormValues }) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     setStatus("saving");
     setErrorMessage(null);
 
@@ -82,6 +86,8 @@ export function SettingsForm({ settings }: { settings: SettingsFormValues }) {
     } catch (error) {
       setStatus("error");
       setErrorMessage(error instanceof Error ? error.message : "Failed to save settings.");
+    } finally {
+      submittingRef.current = false;
     }
   }
 

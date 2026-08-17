@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Pencil, PlusCircle } from "lucide-react";
-import { AvailabilitySwitch } from "@/components/admin/availability-switch";
+import { CarStatusSelect } from "@/components/admin/car-status-select";
 import { DeleteCarButton } from "@/components/admin/delete-car-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { db } from "@/lib/db";
-import { CarStatus } from "@/generated/prisma/client";
 import { PLACEHOLDER_CAR_IMAGE } from "@/lib/constants";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -54,7 +53,7 @@ export default async function AdminCarsPage() {
                 <TableHead className="w-20">Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Price / day</TableHead>
-                <TableHead>Availability</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -82,10 +81,7 @@ export default async function AdminCarsPage() {
                       {formatPrice(Number(car.pricePerDay))}
                     </TableCell>
                     <TableCell>
-                      <AvailabilitySwitch
-                        carId={car.id}
-                        defaultChecked={car.status === CarStatus.AVAILABLE}
-                      />
+                      <CarStatusSelect carId={car.id} status={car.status} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">

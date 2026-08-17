@@ -24,6 +24,12 @@ const NAV_ITEMS = [
   { href: "/admin/cars/new", label: "Add Car", icon: PlusCircle, exact: true },
 ];
 
+// Overrides the base SidebarMenuButton's `[&_svg]:size-4` — a class on the
+// icon itself can't win here (a plain class always loses to a parent's
+// descendant-selector rule on specificity), so the override has to go
+// through the button's own className, where tailwind-merge resolves it.
+const ICON_SIZE_CLASS = "[&_svg]:size-5";
+
 export function AppSidebar() {
   const pathname = usePathname();
 
@@ -34,12 +40,13 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
+              className={ICON_SIZE_CLASS}
               render={
                 <Link href="/admin">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Car className="size-4" />
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Car className="size-5" aria-label={SITE_NAME} />
                   </span>
-                  <div className="grid flex-1 text-left leading-tight">
+                  <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
                     <span className="truncate font-heading font-semibold">
                       {SITE_NAME}
                     </span>
@@ -70,12 +77,13 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                       className={cn(
+                        ICON_SIZE_CLASS,
                         "border-l-[3px] border-transparent",
                         isActive && "border-l-gold bg-gold-dim text-gold",
                       )}
                       render={
                         <Link href={item.href}>
-                          <item.icon />
+                          <item.icon aria-label={item.label} />
                           <span>{item.label}</span>
                         </Link>
                       }
@@ -95,12 +103,13 @@ export function AppSidebar() {
               isActive={pathname === "/admin/settings"}
               tooltip="Settings"
               className={cn(
+                ICON_SIZE_CLASS,
                 "border-l-[3px] border-transparent",
                 pathname === "/admin/settings" && "border-l-gold bg-gold-dim text-gold",
               )}
               render={
                 <Link href="/admin/settings">
-                  <Settings />
+                  <Settings aria-label="Settings" />
                   <span>Settings</span>
                 </Link>
               }
@@ -109,9 +118,10 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="View public site"
+              className={ICON_SIZE_CLASS}
               render={
                 <Link href="/" target="_blank">
-                  <ExternalLink />
+                  <ExternalLink aria-label="View public site" />
                   <span>View Site</span>
                 </Link>
               }
@@ -121,10 +131,10 @@ export function AppSidebar() {
             <SidebarMenuButton
               tooltip="Sign out"
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+              className={cn(ICON_SIZE_CLASS, "text-red-400 hover:text-red-300 hover:bg-red-400/10")}
               render={
                 <button>
-                  <LogOut />
+                  <LogOut aria-label="Sign out" />
                   <span>Sign out</span>
                 </button>
               }
