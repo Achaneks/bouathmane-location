@@ -5,7 +5,9 @@ const nextConfig: NextConfig = {
   compress: true,
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      // Multiple 5MB images get base64-encoded (~+33%) in one submit;
+      // headroom for MAX_IMAGES_PER_CAR (10) images plus form overhead.
+      bodySizeLimit: "75mb",
     },
   },
   images: {

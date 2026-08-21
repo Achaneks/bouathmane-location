@@ -41,3 +41,7 @@ next-env.d.ts
 
 # prisma
 /src/generated/prisma
+
+# uploaded car images (stored on the VPS filesystem, not committed)
+/public/uploads/cars/*
+!/public/uploads/cars/.gitkeep

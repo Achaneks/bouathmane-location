@@ -5,10 +5,14 @@ export function WhatsAppButton({
   car,
   phone,
   className,
+  label = "Contact on WhatsApp",
+  message,
 }: {
   car: { name: string; available: boolean };
   phone: string;
   className?: string;
+  label?: string;
+  message?: string;
 }) {
   if (!car.available) {
     return (
@@ -20,16 +24,17 @@ export function WhatsAppButton({
         )}
       >
         <WhatsAppIcon className="size-4" />
-        Contact on WhatsApp
+        {label}
       </span>
     );
   }
 
-  const message = `Hello, I'm interested in renting the ${car.name}. Is it available?`;
+  const resolvedMessage =
+    message ?? `Hello, I'm interested in renting the ${car.name}. Is it available?`;
 
   return (
     <a
-      href={getWhatsAppLink(phone, message)}
+      href={getWhatsAppLink(phone, resolvedMessage)}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
@@ -38,7 +43,7 @@ export function WhatsAppButton({
       )}
     >
       <WhatsAppIcon className="size-4" />
-      Contact on WhatsApp
+      {label}
     </a>
   );
 }

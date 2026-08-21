@@ -17,6 +17,7 @@ jest.mock("next/link", () => ({
 
 const car: CarCardData = {
   id: "car_1",
+  slug: "mercedes-benz-s-class-2024",
   make: "Mercedes-Benz",
   model: "S-Class",
   year: 2024,

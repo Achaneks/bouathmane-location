@@ -26,6 +26,7 @@ export async function CarGrid() {
               <CarCard
                 car={{
                   id: car.id,
+                  slug: car.slug,
                   make: car.make,
                   model: car.model,
                   year: car.year,

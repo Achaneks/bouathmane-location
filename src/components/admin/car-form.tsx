@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
-import { CheckCircle2, ImagePlus, Loader2 } from "lucide-react";
+import { CheckCircle2, ImagePlus, Loader2, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -33,6 +33,7 @@ const STATUS_LABELS: Record<CarStatus, string> = {
 };
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGES = 10;
 
 export interface CarFormValues {
   make: string;
@@ -41,7 +42,12 @@ export interface CarFormValues {
   pricePerDay: number;
   description: string;
   status: CarStatus;
-  image: string;
+  images: string[];
+}
+
+interface NewImage {
+  id: string;
+  preview: string;
 }
 
 type FormStatus = "idle" | "pending" | "success";
@@ -60,7 +66,8 @@ export function CarForm({
   successLabel?: string;
 }) {
   const router = useRouter();
-  const [imagePreview, setImagePreview] = useState(car?.image ?? "");
+  const [existingImages, setExistingImages] = useState<string[]>(car?.images ?? []);
+  const [newImages, setNewImages] = useState<NewImage[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [status, setStatus] = useState<FormStatus>("idle");
@@ -76,25 +83,57 @@ export function CarForm({
     return () => clearTimeout(timer);
   }, [status, router]);
 
-  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  function readFileAsDataUrl(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
 
-    if (file.size > MAX_IMAGE_BYTES) {
-      setImageError(`Image '${file.name}' is too large (max 5MB per image)`);
-      event.target.value = "";
-      return;
+  async function handleFilesSelected(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    const errors: string[] = [];
+    const accepted: File[] = [];
+    const totalCount = existingImages.length + newImages.length;
+
+    for (const file of files) {
+      if (totalCount + accepted.length >= MAX_IMAGES) {
+        errors.push(`Only up to ${MAX_IMAGES} images are allowed per car`);
+        break;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        errors.push(`'${file.name}' is too large (max 5MB per image)`);
+        continue;
+      }
+      accepted.push(file);
     }
 
-    setImageError(null);
-    const reader = new FileReader();
-    reader.onload = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
+    setImageError(errors.length > 0 ? errors.join(" · ") : null);
+    if (accepted.length === 0) return;
+
+    const previews = await Promise.all(accepted.map(readFileAsDataUrl));
+    setNewImages((prev) => [
+      ...prev,
+      ...previews.map((preview) => ({ id: crypto.randomUUID(), preview })),
+    ]);
+  }
+
+  function removeExistingImage(url: string) {
+    setExistingImages((prev) => prev.filter((image) => image !== url));
+  }
+
+  function removeNewImage(id: string) {
+    setNewImages((prev) => prev.filter((image) => image.id !== id));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submittingRef.current || imageError) return;
+    if (submittingRef.current) return;
     submittingRef.current = true;
 
     const formData = new FormData(event.currentTarget);
@@ -117,7 +156,12 @@ export function CarForm({
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
-      <input type="hidden" name="image" value={imagePreview} />
+      {existingImages.map((url) => (
+        <input key={url} type="hidden" name="existingImages" value={url} />
+      ))}
+      {newImages.map((image) => (
+        <input key={image.id} type="hidden" name="newImages" value={image.preview} />
+      ))}
 
       <div className="flex flex-col gap-6 lg:col-span-2">
         <Card className="border border-border">
@@ -195,27 +239,10 @@ export function CarForm({
       <div className="flex flex-col gap-6">
         <Card className="border border-border">
           <CardHeader>
-            <CardTitle className="font-heading text-lg italic text-text-primary">Photo</CardTitle>
-            <CardDescription>Upload a high-quality image of the car.</CardDescription>
+            <CardTitle className="font-heading text-lg italic text-text-primary">Photos</CardTitle>
+            <CardDescription>Upload high-quality images of the car. The first image is used as the main photo.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-surface">
-              {imagePreview ? (
-                <Image
-                  src={imagePreview}
-                  alt="Car preview"
-                  fill
-                  className="object-cover"
-                  unoptimized={imagePreview.startsWith("data:")}
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-text-secondary">
-                  <ImagePlus className="size-8" />
-                  <span className="text-sm">No image selected</span>
-                </div>
-              )}
-            </div>
-
             <Label
               htmlFor="imageUpload"
               className={cn(
@@ -224,14 +251,15 @@ export function CarForm({
               )}
             >
               <ImagePlus className="size-4" />
-              {imagePreview ? "Change image" : "Upload image"}
+              Upload images
             </Label>
             <input
               id="imageUpload"
               type="file"
+              multiple
               accept="image/jpeg,image/png,image/webp"
               className="sr-only"
-              onChange={handleImageChange}
+              onChange={handleFilesSelected}
             />
             {imageError && (
               <p role="alert" className="text-xs text-unavailable">
@@ -239,12 +267,51 @@ export function CarForm({
               </p>
             )}
             <p className="text-xs text-text-muted">
-              Max 5MB per image. Accepted: JPG, PNG, WebP
+              Click to upload images (max 5MB each, JPG/PNG/WebP)
             </p>
-            <p className="text-xs text-text-muted">
-              For this MVP, images are stored locally in the browser session.
-              Connect VPS filesystem storage when wiring up uploads.
-            </p>
+
+            {(existingImages.length > 0 || newImages.length > 0) && (
+              <div className="grid grid-cols-3 gap-2">
+                {existingImages.map((url) => (
+                  <div
+                    key={url}
+                    className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-surface"
+                  >
+                    <Image src={url} alt="Car photo" fill className="object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(url)}
+                      aria-label="Remove image"
+                      className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-unavailable"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+                {newImages.map((image) => (
+                  <div
+                    key={image.id}
+                    className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-surface"
+                  >
+                    <Image
+                      src={image.preview}
+                      alt="Car photo preview"
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeNewImage(image.id)}
+                      aria-label="Remove image"
+                      className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-unavailable"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

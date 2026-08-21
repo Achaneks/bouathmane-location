@@ -29,7 +29,7 @@ export default async function EditCarPage({
           pricePerDay: Number(car.pricePerDay),
           description: car.description,
           status: car.status,
-          image: car.images[0] ?? "",
+          images: car.images,
         }}
         action={updateCarAction.bind(null, id)}
         submitLabel="Save Changes"
